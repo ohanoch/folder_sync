@@ -6,16 +6,19 @@ import sys
 import os
 import shutil
 import glob
+
 import hashlib
+import numpy as np
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 class FileMeta:
-    def __init__(self, name, mod_time, size):
+    def __init__(self, name, mod_time=None, size=None, md5=None):
         self.name = name
         self.mod_time = mod_time
         self.size = size
+        self.md5=md5
 
 def input_thread(stop_flag, is_sleeping):
     key_input = input()
@@ -55,6 +58,7 @@ def interval_to_seconds(input_interval):
     
     return days*24*60*60  + hours*60*60 + minutes*60 + seconds
 
+#https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
 def md5(filename):
     hash_md5 = hashlib.md5()
     with open(filename, "rb") as f:
@@ -94,20 +98,28 @@ def sync_loop(source_dir, replica_dir, interval):
 
 
             source_md5 = []
-            replica_md5 = []
             for f in source_files:
                 source_md5.append(md5(f))
-            for f in replica_files:
-                replica_md5.append(md5(f))
-                
             #find items in replica hashes that are not in source hashes and delete these files.
                 #https://stackoverflow.com/questions/41125909/python-find-elements-in-one-list-that-are-not-in-the-other
-                #wtire in log
+            replica_md5 = []
+            for f in replica_files:
+                f_md5 = md5(f)
+                if f_md5 not in source_md5:
+                    logging.info("Deleting file from replica directory: " + f)
+                    os.remove(f)
+                    replica_files.remove(f)
+                else:
+                    replica_md5.append(f_md5)
+                   
             #go through all hashes in source
                 #for items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
                 #write in log
                 #for items in source that are in replica - move/rename the file in replica to the same as in source
                 #write in log
+            for f in source_md5:
+                if f not in replica_md5:
+                    shutil.copyfile(f, os.path.join(replica_directory, EXTRA_PATH_TO_FILE)
 
         if stop_flag:
             break
