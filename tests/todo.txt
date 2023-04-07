@@ -1,4 +1,5 @@
 replica directory empty
+source directory empty
 extra file in replica
 file name change in source
 file moved in source

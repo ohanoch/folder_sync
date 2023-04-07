@@ -1,5 +1,6 @@
 import pytest
 import shutil
+import tempfile
 
 import sys
 sys.path.append('..')
@@ -31,6 +32,18 @@ def test_intervals():
     assert interval_to_seconds("2s") == 2
 
 
-
-
+def test_replica_empty():
+    prepare_test_area()
+    os.makedirs(os.path.join("sd","d1","d2","d3"), exist_ok=True)
+    temp = []
+    temp.append(tempfile.NamedTemporaryFile(dir="sd"))
+    temp.append(tempfile.NamedTemporaryFile(dir=os.path.join("sd","d1")))
+    temp.append(tempfile.NamedTemporaryFile(dir=os.path.join("sd","d1","d2")))
+    sync_action("sd","rd")
+    sd_count = sum([len(files) for r, d, files in os.walk("sd")])
+    rd_count = sum([len(files) for r, d, files in os.walk("rd")])
+    assert sd_count == rd_count and\
+            md5(temp[0].name) == md5(os.path.join("rd",temp[0].name)) and\
+            md5(temp[1].name) == md5(os.path.join("rd", "d1",temp[1].name)) and\
+            md5(temp[2].name) == md5(os.path.join("rd", "d1", "d2",temp[2].name))
 
