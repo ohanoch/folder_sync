@@ -1,4 +1,5 @@
 *.swp
-sd/*
-rd/*
+tests/sd/*
+tests/rd/*
+tests/ld/*
 
