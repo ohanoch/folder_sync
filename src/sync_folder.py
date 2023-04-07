@@ -14,8 +14,8 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 class FileMeta:
-    def __init__(self, name, mod_time=None, size=None, md5=None):
-        self.name = name
+    def __init__(self, fullname, mod_time=None, size=None, md5=None):
+        self.fullname = fullname
         self.mod_time = mod_time
         self.size = size
         self.md5=md5
@@ -41,7 +41,7 @@ def check_directories(source_dir, replica_dir, log_dir):
 
     #check if log file location eists - if not, create it
     if not os.path.isdir(log_dir):
-        os.mkdir(log_dir)
+        os.mkdir(log_dir, parents=True, exist_ok=True)
 
 def interval_to_seconds(input_interval):
     try:
@@ -95,31 +95,69 @@ def sync_loop(source_dir, replica_dir, interval):
                         file_pair[1].size == os.path.getsize(file_pair[1].name):
                             source_files.remove(file_pair[0].name)
                             replica_files.remove(file_pair[1].name)
-
-
-            source_md5 = []
-            for f in source_files:
-                source_md5.append(md5(f))
-            #find items in replica hashes that are not in source hashes and delete these files.
-                #https://stackoverflow.com/questions/41125909/python-find-elements-in-one-list-that-are-not-in-the-other
-            replica_md5 = []
-            for f in replica_files:
-                f_md5 = md5(f)
-                if f_md5 not in source_md5:
-                    logging.info("Deleting file from replica directory: " + f)
-                    os.remove(f)
-                    replica_files.remove(f)
                 else:
+                    file_record.remove(file_pair)
+
+            source_meta = []
+            source_md5 = []
+            for f_name in source_files:
+                f_md5 = md5(f_name)
+                source_meta.append(FileMeta(fullname=f_name, mod_time=os.path.getmtime(f_name), size=os.path.getsize(f_name), md5=f_md5))
+                source_md5.append(f_md5)
+            
+            """
+            Find items in replica hashes that are not in source hashes and delete these files.
+            https://stackoverflow.com/questions/41125909/python-find-elements-in-one-list-that-are-not-in-the-other
+            """
+            replica_meta = []
+            replica_md5 = []
+            for f_name in replica_files:
+                f_md5 = md5(f_name)
+                if f_md5 not in source_md5:
+                    logging.info("Deleting file from replica directory: " + f_name)
+                    os.remove(f_name)
+                    replica_files.remove(f_name)
+                    #Delete empty folder
+                    f_relative_dir = "/".join(f_name.replace(replica_dir + "/","").split("/")[:-1])
+                    if not os.path.isdir(os.path.join(source_dir, f_relative_dir)):
+                        dir_to_delete = os.path.join(replica_dir, f_relative_dir)
+                        logging.info("Deleting empty dirctory: " + dir_to_delete)
+                        os.rmdir(dir_to_delete)
+                else:
+                    replica_meta.append(FileMeta(fullname=f_name, mod_time=os.path.getmtime(f_name), size=os.path.getsize(f_name), md5=f_md5))
                     replica_md5.append(f_md5)
-                   
-            #go through all hashes in source
-                #for items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
-                #write in log
-                #for items in source that are in replica - move/rename the file in replica to the same as in source
-                #write in log
-            for f in source_md5:
-                if f not in replica_md5:
-                    shutil.copyfile(f, os.path.join(replica_directory, EXTRA_PATH_TO_FILE)
+
+            """      
+            Go through all hashes in source
+            For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
+            """
+            for source_f in source_meta:
+                f_relative_fullname = source_f.fullname.replace(source_dir + "/","")
+                replica_f_dir = os.path.join(replica_directory, "/".join(f_relative_fullname.split("/")[:-1]))
+                if not os.isdir(replica_f_dir):
+                        os.mkdir(replica_f_dir, parents=True, exist_ok=True)
+                replica_f_fullname = os.path.join(replica_dir, f_relative_fullname)
+
+                if source_f.md5 not in replica_md5:
+                    
+                    logging.info("Copying file from source to replica: " + f_relative_fullname)
+                    shutil.copyfile(source_f.fullname, replica_f_fullname)
+                    file_record.append((\
+                            source_f,\
+                            FileMeta(fullname=replica_f_fullname, mod_time=os.path.getmtime(replica_f_fullname), size=os.path.getsize(replica_f_fullname), md5=f.md5)))
+                """
+                For items in source that are in replica - move/rename the file in replica to the same as in source
+                """
+                else: 
+                    for replica_f in replica_meta:
+                        if replica_f.md5 == source_f.md5:
+                            logging.info("Moving file in replica from: " + replica_f.fullname + " to: " + replica_f_fullname)
+                            shutil.move(replica_f.fullname, replica_f_fullname)
+                            #Delete empty folders
+                            if not os.path.isdir("/".join(source_f.split("/")[:-1])):
+                                logging.info("Deleting empty directory: " + replica_f_dir)
+                                os.rmdir(replica_f_dir)
+                            break
 
         if stop_flag:
             break
@@ -139,14 +177,32 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--log-dir", help = "Location of log file to be saved.")
     args = parser.parse_args()
 
-    check_directories(args.sourcedir, args.replicadir, args.logdir)
+    source_dir = None
+    if args.sourcedir[-1] == "/":
+        source_dir = args.sourcedir[:-1]
+    else:
+        source_dir = args.sourcedir
 
-    logging.basicConfig(filename=os.path.join(args.logfile, time.strftime("%Y%m%d_%H%M%S") + '.log'), filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+    replica_dir = None
+    if args.sourcedir[-1] == "/":
+        replica_dir = args.replicadir[:-1]
+    else:
+        replica_dir = args.replicadir
+
+    log_dir = None
+    if args.logdir[-1] == "/":
+        log_dir = args.logdir[:-1]
+    else:
+        log_dir = args.logdir
+
+    check_directories(sourcedir, replicadir, logdir)
+
+    logging.basicConfig(filename=os.path.join(args.logdir, time.strftime("%Y%m%d_%H%M%S") + '.log'), filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
     
     #translate interval into seconds
     interval = interval_to_seconds(args.interval)
     
-    sync_loop(args.sourcedir, args.replicadir, interval):
+    sync_loop(sourcedir, replicadir, interval):
 
 
