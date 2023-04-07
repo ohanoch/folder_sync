@@ -9,7 +9,6 @@ import glob
 import traceback
 
 import hashlib
-import numpy as np
 
 import logging
 
@@ -41,19 +40,25 @@ def check_directories(source_dir, replica_dir):
 
 def interval_to_seconds(input_interval):
     try:
+        if not "d" in input_interval and\
+            not "h" in input_interval and\
+            not "m" in input_interval and\
+            not "s" in input_interval:
+                raise Exception("d,m,h,s not found in interval input.")
+
         if "d" in input_interval:
             days = int(input_interval.split("d")[0])
-            input_intervals = input_interval.split("d")[1:]
+            input_interval = "".join(input_interval.split("d")[1:])
         else:
             days = 0
         if "h" in input_interval:
             hours = int(input_interval.split("h")[0])
-            input_intervals = input_interval.split("h")[1:]
+            input_interval = "".join(input_interval.split("h")[1:])
         else:
             hours = 0
         if "m" in input_interval:
             minutes = int(input_interval.split("m")[0])
-            input_intervals = input_interval.split("m")[1:]
+            input_interval = "".join(input_interval.split("m")[1:])
         else:
             minutes = 0
         if "s" in input_interval:
@@ -62,7 +67,7 @@ def interval_to_seconds(input_interval):
             seconds = 0
     except:
         raise Exception("Bad interval entered. Interval should be of shape ##d##h##m##s - got: " + input_interval)
-    
+    print((days,hours,minutes,seconds))
     return days*24*60*60  + hours*60*60 + minutes*60 + seconds
 
 #https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
@@ -188,14 +193,16 @@ def sync_loop(source_dir, replica_dir, interval):
             time.sleep(sleep_time)
             is_sleeping = False
 
-if __name__ == "__main__":
+
+
+def main(argv=None):
     parser = argparse.ArgumentParser("This program will synchronize files between 2 directories periodically.")
 
     parser.add_argument("-s", "--source-dir", help = "Source directory to be synced.", required=True)
     parser.add_argument("-r", "--replica-dir", help = "Replica directory to be synced to.", required=True)
     parser.add_argument("-i", "--interval", help = "Synchronization interval for syncing. Format is ##d##h##m##s", required=True)
     parser.add_argument("-l", "--log-dir", help = "Location of log file to be saved.", required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     
     try:
         #check if log file location eists - if not, create it
@@ -222,7 +229,7 @@ if __name__ == "__main__":
         print("ERROR: probelm creating log file in: " + args.log_dir)
         print("ERROR: " + str(e))
         traceback.print_exc()
-        sys.exit(0)
+        raise Exception(e)
 
     #Check if source and replica directories are valid
     try:
@@ -242,7 +249,7 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error("Directory path validation crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
-        sys.exit(0)
+        raise Exception(e)
     
     #translate interval into seconds
     try:
@@ -251,12 +258,15 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error("Interval calculation crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
-        sys.exit(0)
+        raise Exception(e)
 
     try:
         sync_loop(source_dir, replica_dir, interval)
     except Exception as e:
         logging.error("Sync loop crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
-        sys.exit(0)
+        raise Exception(e)
 
+
+if __name__ == "__main__":
+    sys.exit(main())
