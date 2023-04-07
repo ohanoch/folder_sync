@@ -2,4 +2,6 @@
 tests/sd/*
 tests/rd/*
 tests/ld/*
+venv
+*/__pycache__/*
 
