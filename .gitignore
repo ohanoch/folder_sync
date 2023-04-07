@@ -4,4 +4,5 @@ tests/rd/*
 tests/ld/*
 venv
 */__pycache__/*
+__pycache__/*
 
