@@ -12,7 +12,6 @@ import hashlib
 import numpy as np
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 class FileMeta:
     def __init__(self, fullname, mod_time=None, size=None, md5=None):
@@ -209,7 +208,16 @@ if __name__ == "__main__":
         if not os.path.isdir(log_dir):
             os.mkdir(log_dir, parents=True, exist_ok=True)
 
-        logging.basicConfig(filename=os.path.join(args.log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log'), filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+        logging.basicConfig(\
+                level = logging.DEBUG,\
+                #filemode='w',\
+                handlers = [
+                    logging.FileHandler(os.path.join(args.log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')),
+                    logging.StreamHandler()
+                ],
+                format='%(asctime)s - %(levelname)s - %(message)s',\
+                datefmt='%d-%b-%y %H:%M:%S')
+
     except Exception as e:
         print("ERROR: probelm creating log file in: " + args.log_dir)
         print("ERROR: " + str(e))
@@ -233,7 +241,7 @@ if __name__ == "__main__":
         check_directories(source_dir, replica_dir)
     except Exception as e:
         logging.error("Directory path validation crashed with error: " + str(e))
-        traceback.print_exc()
+        logging.error("Traceback: ", exc_info=True)
         sys.exit(0)
     
     #translate interval into seconds
@@ -242,13 +250,13 @@ if __name__ == "__main__":
         logging.info("Interval " + args.interval + " in seconds = " + str(interval))
     except Exception as e:
         logging.error("Interval calculation crashed with error: " + str(e))
-        traceback.print_exc()
+        logging.error("Traceback: ", exc_info=True)
         sys.exit(0)
 
     try:
         sync_loop(source_dir, replica_dir, interval)
     except Exception as e:
-        logging.error("sync loop crashed with error: " + str(e))
-        traceback.print_exc()
+        logging.error("Sync loop crashed with error: " + str(e))
+        logging.error("Traceback: ", exc_info=True)
         sys.exit(0)
 
