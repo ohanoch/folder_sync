@@ -1,0 +1,17 @@
+extra file in replica
+file name change in source
+file moved in source
+file name changed in replica
+file moved in replica
+deleting last file in subfolder in replica
+source dir with / in end
+replica dir with / in end
+
+killing mid-copy
+killing while sleep
+
+bad time interval input
+
+replica folder does not exist
+source folder does not exist
+log folder does not exist
