@@ -225,9 +225,12 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
     file_record=[]
-    if(os.path.exists("file_record.txt")):
-        with open("file_record.txt", "r") as fr:
+    file_record_path = os.path.join(os.path.dirname(__file__),"file_record.txt")
+    if(os.path.exists(file_record_path)):
+        with open(file_record_path, "r") as fr:
             for line in fr.readlines():
+                if "^^^" not in line:
+                    continue
                 source_f = line.split("^^^")[0]
                 replica_f = line.split("^^^")[1]
 
@@ -249,12 +252,12 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
         start_time = int(time.time())
         file_record = sync_action(source_dir, replica_dir, file_record)
         
-        with open("file_record.txt", "w") as fr:
+        with open(file_record_path, "a") as fr:
             for f in file_record:
                 fr.write(f[0].fullname + ";" + str(f[0].mod_time) + ";" + str(f[0].size) + ";" + f[0].md5 +\
                         "^^^" +\
-                        f[1].fullname + ";" + str(f[1].mod_time) + ";" + str(f[1].size) + ";" + f[1].md5
-                        )
+                        f[1].fullname + ";" + str(f[1].mod_time) + ";" + str(f[1].size) + ";" + f[1].md5 +\
+                        "\n")
 
         if stop_flag.value:
             break
