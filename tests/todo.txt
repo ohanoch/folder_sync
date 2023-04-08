@@ -1,8 +1,10 @@
-replica directory empty
-source directory empty
-extra file in replica
-extra file in source
-file name change in source
+replica directory empty --------------------- V
+source directory empty ---------------------- V
+source and replica empty -------------------- V
+source and replica full and identical ------- V
+extra file in replica ----------------------- V
+extra file in source ------------------------ V
+file name change in source ------------------ V
 file name changed in replica
 file moved in source
 file moved in replica
