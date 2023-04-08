@@ -31,5 +31,6 @@ before_script:
   - pip install -r requirements.txt
 
 test:
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   script:
     - pytest --cov=.
