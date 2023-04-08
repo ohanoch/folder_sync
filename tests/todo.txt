@@ -1,14 +1,21 @@
 replica directory empty
 source directory empty
 extra file in replica
+extra file in source
 file name change in source
-file moved in source
 file name changed in replica
+file moved in source
 file moved in replica
 deleting last file in subfolder in replica
+
 source dir with / in end
 replica dir with / in end
-files already in replica dir before running the code
+
+replica and source identical at start
+
+zero byte file in source
+
+spaces in file name
 
 killing mid-copy
 killing while sleep

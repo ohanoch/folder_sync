@@ -35,13 +35,35 @@ def input_thread(stop_flag, is_sleeping):
                 stop_flag.append(True)
                 sys.exit(0)
 
+def setup_logging(input_log_dir):
+    #check if log file location exists - if not, create it
+    log_dir = None
+    if input_log_dir[-1] == "/":
+        log_dir = input_log_dir[:-1]
+    else:
+        log_dir = input_log_dir
+
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+
+    logging.basicConfig(\
+            level = logging.DEBUG,\
+            handlers = [
+                logging.FileHandler(os.path.join(input_log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')),
+                logging.StreamHandler()
+            ],
+            format='%(asctime)s - %(levelname)s - %(message)s',\
+            datefmt='%d-%b-%y %H:%M:%S',\
+            force=True)
+    logging.info("Log file created: " + os.path.join(input_log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')) 
+
 def check_directories(source_dir, replica_dir):
     #check if source directory exists - if not, return error and close program
     if not os.path.isdir(source_dir):
         raise Exception("Source directory not found.")
     #check if replica directory exists - if not, create it
     if not os.path.isdir(replica_dir):
-        os.mkdir(replica_dir)
+        os.makedirs(replica_dir, exist_ok = True)
 
 
 def interval_to_seconds(input_interval):
@@ -73,7 +95,6 @@ def interval_to_seconds(input_interval):
             seconds = 0
     except:
         raise Exception("Bad interval entered. Interval should be of shape ##d##h##m##s - got: " + input_interval)
-    print((days,hours,minutes,seconds))
     return days*24*60*60  + hours*60*60 + minutes*60 + seconds
 
 #https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
@@ -85,7 +106,7 @@ def md5(filename):
     return hash_md5.hexdigest()
 
 
-def sync_action(source_dir, replica_dir, interval, file_record=[]):
+def sync_action(source_dir, replica_dir, file_record=[]):
     logging.info("Starting sync")
     #if replica directory is empty - copy everything from source directory over.
     if len(os.listdir(replica_dir)) == 0:
@@ -95,6 +116,7 @@ def sync_action(source_dir, replica_dir, interval, file_record=[]):
         #go over recorded file names and modification dates - md5 all files in source and all files in replica that are not in the list
         #this is to avoid hashing unnecessary files, which can be relavent if we have large files
         logging.info("Going over previously recordded files...")
+        logging.debug(source_dir)
         source_files = glob.glob(source_dir + '/**/*', recursive=True)
         replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
         for file_pair in file_record:
@@ -135,25 +157,23 @@ def sync_action(source_dir, replica_dir, interval, file_record=[]):
                 os.remove(f_name)
                 replica_files.remove(f_name)
                 #Delete empty folder
-                f_relative_dir = "/".join(f_name.replace(replica_dir + "/","").split("/")[:-1])
-                if not os.path.isdir(os.path.join(source_dir, f_relative_dir)):
-                    dir_to_delete = os.path.join(replica_dir, f_relative_dir)
-                    logging.info("Deleting empty dirctory: " + dir_to_delete)
-                    os.rmdir(dir_to_delete)
+                #f_relative_dir = "/".join(f_name.replace(replica_dir + "/","").split("/")[:-1])
+                #if not os.path.isdir(os.path.join(source_dir, f_relative_dir)):
+                #    dir_to_delete = os.path.join(replica_dir, f_relative_dir)
+                #    logging.info("Deleting dirctory: " + dir_to_delete)
+                #    shutil.rmtree(dir_to_delete)
             else:
                 replica_meta.append(FileMeta(fullname=f_name, mod_time=os.path.getmtime(f_name), size=os.path.getsize(f_name), md5=f_md5))
                 replica_md5.append(f_md5)
 
-        """      
-        Go through all hashes in source
-        For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
-        """
+        #Go through all hashes in source
+        #For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
         logging.info("Copying and moving files in replcia to match source...") 
         for source_f in source_meta:
             f_relative_fullname = source_f.fullname.replace(source_dir + "/","")
             replica_f_dir = os.path.join(replica_dir, "/".join(f_relative_fullname.split("/")[:-1]))
             if not os.path.isdir(replica_f_dir):
-                    os.mkdir(replica_f_dir, parents=True, exist_ok=True)
+                    os.makedirs(replica_f_dir, exist_ok=True)
             replica_f_fullname = os.path.join(replica_dir, f_relative_fullname)
 
             if source_f.md5 not in replica_md5:
@@ -172,11 +192,16 @@ def sync_action(source_dir, replica_dir, interval, file_record=[]):
                         file_record.append((\
                                 source_f,\
                                 replica_f))
-                        #Delete empty folders
-                        if not os.path.isdir("/".join(source_f.fullname.split("/")[:-1])):
-                            logging.info("Deleting empty directory: " + replica_f_dir)
-                            os.rmdir(replica_f_dir)
                         break
+
+        #Search for folders that are not in source and delete them from replica
+        #This is being done at the end so that we avoid deleting files that have changed names before we had a chance to move them
+        for f_name in replica_files:
+            if os.path.isdir(f_name):
+                if not os.path.isdir(os.path.join(source_dir, f_name.replace(replica_dir + "/", ""))):
+                    logging.info("Deleting directory from replica that does not exist in source: " + f_name)
+                    shutil.rmtree(f_name)
+
     logging.info("Sync finished")
 
 
@@ -192,7 +217,7 @@ def sync_loop(source_dir, replica_dir, interval):
     T.start()
     while not stop_flag:
         start_time = int(time.time())
-        sync_action(source_dir, replica_dir, interval)
+        sync_action(source_dir, replica_dir)
 
         if stop_flag:
             break
@@ -216,26 +241,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     
     try:
-        #check if log file location eists - if not, create it
-        log_dir = None
-        if args.log_dir[-1] == "/":
-            log_dir = args.log_dir[:-1]
-        else:
-            log_dir = args.log_dir
-
-        if not os.path.isdir(log_dir):
-            os.mkdir(log_dir, parents=True, exist_ok=True)
-
-        logging.basicConfig(\
-                level = logging.DEBUG,\
-                #filemode='w',\
-                handlers = [
-                    logging.FileHandler(os.path.join(args.log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')),
-                    logging.StreamHandler()
-                ],
-                format='%(asctime)s - %(levelname)s - %(message)s',\
-                datefmt='%d-%b-%y %H:%M:%S')
-
+        setup_logging(args.log_dir)
     except Exception as e:
         print("ERROR: probelm creating log file in: " + args.log_dir)
         print("ERROR: " + str(e))
