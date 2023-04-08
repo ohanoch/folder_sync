@@ -1,4 +1,6 @@
 # Synch folders
+[![codecov](https://codecov.io/gl/orhanoch/folder_sync/branch/master/graph/badge.svg?token=637Y4XEGSZ)](https://codecov.io/gl/orhanoch/folder_sync)
+
 This program is intended to copy a source directory into a replica directory.
 This will be done periodically.
 A log file is saved and documents what is happening.
