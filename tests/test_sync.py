@@ -22,7 +22,7 @@ FILE_RECORD_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)),"src"
 #Size: 80 bytes
 #If this is not the case - replace this file with a new one correct this test accordingly
 def test_md5():
-    assert md5("DO_NOT_CHANGE.txt") == "9b3a4f11c3cf7278746d07bdf4bdd101"
+    assert md5(os.path.join(os.path.dirname(os.path.dirname(__file__)),"tests","DO_NOT_CHANGE.txt")) == "9b3a4f11c3cf7278746d07bdf4bdd101"
 
 
 #test that interval conversion from ##d##h##m##s to seconds is done correctly
