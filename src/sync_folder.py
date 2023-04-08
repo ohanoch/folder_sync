@@ -225,14 +225,40 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
     file_record=[]
+    if(os.path.exists("file_record.txt")):
+        with open("file_record.txt", "r") as fr:
+            for line in fr.readlines():
+                source_f = line.split("^^^")[0]
+                replica_f = line.split("^^^")[1]
+
+                s_fullname = source_f.split(";")[0]
+                s_mod_time = source_f.split(";")[1]
+                s_size = source_f.split(";")[2]
+                s_md5 = source_f.split(";")[3]
+                r_fullname = replica_f.split(";")[0]
+                r_mod_time = replica_f.split(";")[1]
+                r_size = replica_f.split(";")[2]
+                r_md5 = replica_f.split(";")[3]
+
+                file_record.append((
+                        FileMeta(s_fullname, s_mod_time, s_size, s_md5),\
+                        FileMeta(r_fullname, r_mod_time, r_size, r_md5)\
+                        ))
+
     while not stop_flag.value:
         start_time = int(time.time())
         file_record = sync_action(source_dir, replica_dir, file_record)
+        
+        with open("file_record.txt", "w") as fr:
+            for f in file_record:
+                fr.write(f[0].fullname + ";" + str(f[0].mod_time) + ";" + str(f[0].size) + ";" + f[0].md5 +\
+                        "^^^" +\
+                        f[1].fullname + ";" + str(f[1].mod_time) + ";" + str(f[1].size) + ";" + f[1].md5
+                        )
 
         if stop_flag.value:
             break
         
-        print(os.getppid())
         if os.getppid() == 1:
             sys.exit(0)
 
