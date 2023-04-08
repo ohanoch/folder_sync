@@ -156,12 +156,6 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                 logging.info("Deleting file from replica directory: " + f_name)
                 os.remove(f_name)
                 replica_files.remove(f_name)
-                #Delete empty folder
-                #f_relative_dir = "/".join(f_name.replace(replica_dir + "/","").split("/")[:-1])
-                #if not os.path.isdir(os.path.join(source_dir, f_relative_dir)):
-                #    dir_to_delete = os.path.join(replica_dir, f_relative_dir)
-                #    logging.info("Deleting dirctory: " + dir_to_delete)
-                #    shutil.rmtree(dir_to_delete)
             else:
                 replica_meta.append(FileMeta(fullname=f_name, mod_time=os.path.getmtime(f_name), size=os.path.getsize(f_name), md5=f_md5))
                 replica_md5.append(f_md5)
@@ -182,7 +176,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                 shutil.copyfile(source_f.fullname, replica_f_fullname)
                 file_record.append((\
                         source_f,\
-                        FileMeta(fullname=replica_f_fullname, mod_time=os.path.getmtime(replica_f_fullname), size=os.path.getsize(replica_f_fullname), md5=f.md5)))
+                        FileMeta(fullname=replica_f_fullname, mod_time=os.path.getmtime(replica_f_fullname), size=os.path.getsize(replica_f_fullname), md5=source_f.md5)))
             #For items in source that are in replica - move/rename the file in replica to the same as in source
             else: 
                 for replica_f in replica_meta:
