@@ -31,4 +31,5 @@ During the running of the program enter the word "quit" to safely exit. This wil
 
 ### Note:
 - This was not tested on Windows machines. There are no specific Linux references that I can think of, so it may work on Windows, but I was not able to confirm this.
-
+### Note:
+- It appears pytest-cov is not taking multiprocesses into account. I need to find a way to fix that.
