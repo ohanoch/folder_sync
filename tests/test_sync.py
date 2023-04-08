@@ -659,7 +659,7 @@ def test_replica_empty_names_with_slash(tmpdir):
     ld = tmpdir.mkdir("ld")
     
     setup_logging(os.path.join(ld.dirname, ld.basename))
-    sync_action(os.path.join(sd.dirname, sd.basename) + "/", os.path.join(rd.dirname, rd.basename) + "/")
+    sync_action(os.path.join(sd.dirname, sd.basename) + os.sep, os.path.join(rd.dirname, rd.basename) + os.sep)
     
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
     assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\

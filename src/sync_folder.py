@@ -3,6 +3,7 @@ import time
 import datetime
 
 from threading import Thread
+import multiprocessing
 
 import sys
 import os
@@ -25,15 +26,15 @@ class FileMeta:
 def input_thread(stop_flag, is_sleeping):
     while(True):
         key_input = input()
+        print(is_sleeping.value)
         if key_input == "quit":
-            if len(is_sleeping) == 0:
-                #logging.info("Closing program after quit command.")
-                logging.info("Program is sleeping, please kill it using keyboard interupt Ctr+C")
-                sys.exit(0)
+            if is_sleeping.value == True:
+                logging.info("Closing program after quit command.")
+                return 0
             else:
                 logging.info("finishing current synchronization loop. Program will exit once this is complete")
-                stop_flag.append(True)
-                sys.exit(0)
+                stop_flag.value = True
+                return 1
 
 def setup_logging(input_log_dir):
     #check if log file location exists - if not, create it
@@ -57,7 +58,20 @@ def setup_logging(input_log_dir):
             force=True)
     logging.info("Log file created: " + os.path.join(input_log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')) 
 
-def check_directories(source_dir, replica_dir):
+#make sure source and replica directories exist
+def check_directories(input_source_dir, input_replica_dir):
+    source_dir = None
+    if input_source_dir[-1] == os.sep:
+        source_dir = input_source_dir[:-1]
+    else:
+        source_dir = input_source_dir
+
+    replica_dir = None
+    if input_replica_dir[-1] == os.sep:
+        replica_dir = input_replica_dir[:-1]
+    else:
+        replica_dir = input_replica_dir
+
     #check if source directory exists - if not, return error and close program
     if not os.path.isdir(source_dir):
         raise Exception("Source directory not found.")
@@ -65,6 +79,7 @@ def check_directories(source_dir, replica_dir):
     if not os.path.isdir(replica_dir):
         os.makedirs(replica_dir, exist_ok = True)
 
+    return source_dir, replica_dir
 
 def interval_to_seconds(input_interval):
     try:
@@ -129,9 +144,11 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                         replica_files.remove(file_pair[1].fullname)
             else:
                 file_record.remove(file_pair)
-        logging.info("File record size " + str(len(file_record)))
-        logging.info("Unmatched source files: " + str(source_files))
-        logging.info("Unmatched replica files: " + str(replica_files))
+
+        logging.debug("File record size " + str(len(file_record)))
+        logging.debug("Unmatched source files: " + str(source_files))
+        logging.debug("Unmatched replica files: " + str(replica_files))
+
         logging.info("Hashing source files with md5...") 
         source_meta = []
         source_md5 = []
@@ -163,8 +180,8 @@ def sync_action(source_dir, replica_dir, file_record=[]):
         #For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
         logging.info("Copying and moving files in replcia to match source...") 
         for source_f in source_meta:
-            f_relative_fullname = source_f.fullname.replace(source_dir + "/","")
-            replica_f_dir = os.path.join(replica_dir, "/".join(f_relative_fullname.split("/")[:-1]))
+            f_relative_fullname = source_f.fullname.replace(source_dir + os.sep,"")
+            replica_f_dir = os.path.join(replica_dir, os.sep.join(f_relative_fullname.split(os.sep)[:-1]))
             if not os.path.isdir(replica_f_dir):
                     os.makedirs(replica_f_dir, exist_ok=True)
             replica_f_fullname = os.path.join(replica_dir, f_relative_fullname)
@@ -191,36 +208,33 @@ def sync_action(source_dir, replica_dir, file_record=[]):
         #This is being done at the end so that we avoid deleting files that have changed names before we had a chance to move them
         for f_name in replica_files:
             if os.path.isdir(f_name):
-                if not os.path.isdir(os.path.join(source_dir, f_name.replace(replica_dir + "/", ""))):
+                if not os.path.isdir(os.path.join(source_dir, f_name.replace(replica_dir + os.sep, ""))):
                     logging.info("Deleting directory from replica that does not exist in source: " + f_name)
                     shutil.rmtree(f_name)
 
     logging.info("Sync finished")
 
 
-def sync_loop(source_dir, replica_dir, interval):
+def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
     logging.info("Starting synchronization from " + source_dir + " to " + replica_dir + " every " + str(interval))
     logging.info("to close this program enter the word \"quit\" and then Enter")
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
-    is_sleeping = []
-    is_sleeping.append(False)
-    stop_flag = []
-    T = Thread(target=input_thread,args=(stop_flag, is_sleeping,))
-    T.start()
-    while not stop_flag:
+    while not stop_flag.value:
         start_time = int(time.time())
         sync_action(source_dir, replica_dir)
 
-        if stop_flag:
+        if stop_flag.value:
             break
 
         sleep_time = start_time + interval - time.time()
         if sleep_time > 0:
             logging.info("Next sync in: " + str(int(sleep_time)) + " seconds")
-            is_sleeping.remove(False)
+            is_sleeping.value = True
             time.sleep(sleep_time)
-            is_sleeping.append(False)
+            is_sleeping.value = False
+
+    sys.exit(0)
 
 ##########################################
 
@@ -243,19 +257,8 @@ def main(argv=None):
 
     #Check if source and replica directories are valid
     try:
-        source_dir = None
-        if args.source_dir[-1] == "/":
-            source_dir = args.source_dir[:-1]
-        else:
-            source_dir = args.source_dir
 
-        replica_dir = None
-        if args.replica_dir[-1] == "/":
-            replica_dir = args.replica_dir[:-1]
-        else:
-            replica_dir = args.replica_dir
-
-        check_directories(source_dir, replica_dir)
+        source_dir, replica_dir = check_directories(args.source_dir, args.replica_dir)
     except Exception as e:
         logging.error("Directory path validation crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
@@ -271,7 +274,14 @@ def main(argv=None):
         raise Exception(e)
 
     try:
-        sync_loop(source_dir, replica_dir, interval)
+        is_sleeping = multiprocessing.Value('b', False)
+        stop_flag = multiprocessing.Value('b', False)
+        loop_process = multiprocessing.Process(target=sync_loop,args=(source_dir, replica_dir, interval, stop_flag, is_sleeping, ))
+        loop_process.start()
+        if(input_thread(stop_flag, is_sleeping) == 1):
+            loop_process.join()
+        loop_process.terminate()
+
     except Exception as e:
         logging.error("Sync loop crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
