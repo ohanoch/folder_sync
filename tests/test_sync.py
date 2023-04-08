@@ -75,11 +75,12 @@ def test_no_log_directory(tmpdir):
     assert len(os.listdir(os.path.join(tmpdir, "ld"))) == 1
 
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename))
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
 
 #log gets created
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
@@ -134,11 +135,12 @@ def test_no_replica_directory(tmpdir):
     rd_glob = glob.glob(os.path.join(tmpdir, "rd") + '/**/*', recursive=True)
     sd_count = sum([len(files) for r, d, files in os.walk(sd)])
     rd_count = sum([len(files) for r, d, files in os.walk(os.path.join(tmpdir, "rd"))])
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename))
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
 
 #test source with empty replica. file structure:
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
@@ -160,11 +162,12 @@ def test_replica_empty(tmpdir):
     ld = tmpdir.mkdir("ld")
     
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test source with empty source. file structure:
 #sd -> empty
@@ -186,7 +189,8 @@ def test_source_empty(tmpdir):
     ld = tmpdir.mkdir("ld")
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and rd_count == 0
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob) and rd_count == 0
 
 #test with empty source and replica. file structure:
 #sd -> empty
@@ -201,7 +205,8 @@ def test_source_replica_empty(tmpdir):
     sync_action(os.path.join(sd.dirname, sd.basename), os.path.join(rd.dirname, rd.basename))
     
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and rd_count == 0
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob) and rd_count == 0
 
 #test identical full source and replica. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -229,11 +234,12 @@ def test_source_replica_identical(tmpdir):
     ld = tmpdir.mkdir("ld")
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica except for extra file in replica in each ddirectory. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -267,11 +273,12 @@ def test_extra_file_replica(tmpdir):
     ld = tmpdir.mkdir("ld")
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica + extra files in each source directory. file structure:
 #sd -> (sf11, sf12, sd1 -> (sf21, sf22, sf23, sd2->(sf31, sf32)))
@@ -305,14 +312,15 @@ def test_extra_file_source(tmpdir):
     ld = tmpdir.mkdir("ld")
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf11) == md5(os.path.join(rd,sf11.basename)) and\
-            md5(sf12) == md5(os.path.join(rd,sf12.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf23) == md5(os.path.join(rd,sd1.basename,sf23.basename)) and\
-            md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename)) and\
-            md5(sf32) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf32.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf11) == md5(os.path.join(rd,sf11.basename))
+    assert md5(sf12) == md5(os.path.join(rd,sf12.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf23) == md5(os.path.join(rd,sd1.basename,sf23.basename))
+    assert md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename))
+    assert md5(sf32) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf32.basename))
 
 #test identical full source and replica. file structure:
 #sd -> (sf11, sf13, sd1 -> (sf21, sf22, sf24, sd2->(sf31, sf33)))
@@ -354,14 +362,15 @@ def test_file_name_change_source(tmpdir):
     shutil.move(os.path.join(sd2, "sf32.txt"), os.path.join(sd2, "sf33.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf11) == md5(os.path.join(rd,sf11.basename)) and\
-            md5(os.path.join(sd,"sf13.txt")) == md5(os.path.join(rd,"sf13.txt")) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(os.path.join(sd,sd1.basename,"sf24.txt")) == md5(os.path.join(rd,sd1.basename,"sf24.txt")) and\
-            md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename)) and\
-            md5(os.path.join(sd,sd1.basename,sd2.basename,"sf33.txt")) == md5(os.path.join(rd,sd1.basename,sd2.basename,"sf33.txt"))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf11) == md5(os.path.join(rd,sf11.basename))
+    assert md5(os.path.join(sd,"sf13.txt")) == md5(os.path.join(rd,"sf13.txt"))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(os.path.join(sd,sd1.basename,"sf24.txt")) == md5(os.path.join(rd,sd1.basename,"sf24.txt"))
+    assert md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename))
+    assert md5(os.path.join(sd,sd1.basename,sd2.basename,"sf33.txt")) == md5(os.path.join(rd,sd1.basename,sd2.basename,"sf33.txt"))
 
 #test identical full source and replica. file structure:
 #sd -> (sf11, sf13, sd1 -> (sf21, sf22, sf24, sd2->(sf31, sf33)))
@@ -403,14 +412,15 @@ def test_file_name_change_replica(tmpdir):
     shutil.move(os.path.join(rd2, "sf32.txt"), os.path.join(rd2, "sf33.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf11) == md5(os.path.join(rd,sf11.basename)) and\
-            md5(sf12) == md5(os.path.join(rd,sf12.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf23) == md5(os.path.join(rd,sd1.basename,sf23.basename)) and\
-            md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename)) and\
-            md5(sf32) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf32.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf11) == md5(os.path.join(rd,sf11.basename))
+    assert md5(sf12) == md5(os.path.join(rd,sf12.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf23) == md5(os.path.join(rd,sd1.basename,sf23.basename))
+    assert md5(sf31) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf31.basename))
+    assert md5(sf32) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf32.basename))
 #test identical full source and replica. 1 file moved between directorues. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
 #rd -> (sf1, sd1 -> (sf21, sd2->(sf3, sf22)))
@@ -439,11 +449,12 @@ def test_source_file_moved(tmpdir):
     shutil.move(os.path.join(sd1, "sf22.txt"), os.path.join(sd2, "sf22.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(os.path.join(sd2, "sf22.txt")) == md5(os.path.join(rd, sd1.basename ,sd2.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(os.path.join(sd2, "sf22.txt")) == md5(os.path.join(rd, sd1.basename ,sd2.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica. 1 file moved between directorues. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -473,11 +484,12 @@ def test_replica_file_moved(tmpdir):
     shutil.move(os.path.join(rd1, "sf22.txt"), os.path.join(rd2, "sf22.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd, sd1.basename ,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd, sd1.basename ,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica. 1 file moved between directories and changed name. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -507,11 +519,12 @@ def test_source_file_moved_name_changed(tmpdir):
     shutil.move(os.path.join(sd1, "sf22.txt"), os.path.join(sd2, "sf23.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(os.path.join(sd,sd1.basename, sd2.basename,"sf23.txt")) == md5(os.path.join(rd,sd1.basename, sd2.basename,"sf23.txt")) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(os.path.join(sd,sd1.basename, sd2.basename,"sf23.txt")) == md5(os.path.join(rd,sd1.basename, sd2.basename,"sf23.txt"))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica. 1 file moved between directories and changed name. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -541,11 +554,12 @@ def test_replica_file_moved_name_changed(tmpdir):
     shutil.move(os.path.join(rd1, "sf22.txt"), os.path.join(rd2, "sf23.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test identical full source and replica. 1 file which was alone if folder in source deleted. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->()))
@@ -575,10 +589,11 @@ def test_source_last_file_deleted(tmpdir):
     os.remove(os.path.join(sd2, "sf3.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
 
 #test identical full source and replica. 1 file which was alone if folder in replica deleted. file structure:
 #sd -> (sf1, sd1 -> (sf21, sf22, sd2->(sf3)))
@@ -608,11 +623,12 @@ def test_replica_last_file_deleted(tmpdir):
     os.remove(os.path.join(rd2, "sf3.txt"))
 
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test source with empty replica. spaces in file/folder names. file structure:
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
@@ -634,11 +650,12 @@ def test_replica_empty_spaces_in_names(tmpdir):
     ld = tmpdir.mkdir("ld")
     
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 #test source with empty replica. sending directory names that end with "/" file structure:
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
 #rd -> empty
@@ -662,11 +679,12 @@ def test_replica_empty_names_with_slash(tmpdir):
     sync_action(os.path.join(sd.dirname, sd.basename) + os.sep, os.path.join(rd.dirname, rd.basename) + os.sep)
     
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 #test source with empty replica. 1 file is 0 bytes. file structure:
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
@@ -688,11 +706,12 @@ def test_zero_byte_file(tmpdir):
     ld = tmpdir.mkdir("ld")
     
     sd_glob, rd_glob, sd_count, rd_count = run_loop_instance(sd, rd, ld)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(rd,sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(rd,sf1.basename))
+    assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
 
 
 #general loop test
@@ -724,40 +743,44 @@ def test_general_loop(tmpdir):
     
     time.sleep(2)
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename)) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename))
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(sf22) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf22.basename))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
     
     #move sf22 from sd1 to sd2 and rename it to sf24
     shutil.move(os.path.join(sd1, "sf22.txt"), os.path.join(sd2, "sf24.txt"))
     time.sleep(5)
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt")) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename))
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt"))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
     
     #delete sf21.txt from sd1 in replica
     os.remove(os.path.join(tmpdir,"rd","sd1", "sf21.txt"))
     time.sleep(5)
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename)) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt")) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf1) == md5(os.path.join(os.path.join(tmpdir, "rd"),sf1.basename))
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt"))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
     
     #delete sf1.txt from sd in source
     os.remove(os.path.join(sd, "sf1.txt"))
     time.sleep(5)
     sd_glob, rd_glob, sd_count, rd_count = get_glob_count(sd, rd)
-    assert sd_count == rd_count and len(sd_glob) == len(rd_glob) and\
-            md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename)) and\
-            md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt")) and\
-            md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+    assert md5(sf21) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sf21.basename))
+    assert md5(os.path.join(sd2, "sf24.txt")) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,"sf24.txt"))
+    assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
 
     process.terminate()
 

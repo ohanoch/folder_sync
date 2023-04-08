@@ -25,16 +25,19 @@ class FileMeta:
 
 def input_thread(stop_flag, is_sleeping):
     while(True):
-        key_input = input()
-        print(is_sleeping.value)
-        if key_input == "quit":
-            if is_sleeping.value == True:
-                logging.info("Closing program after quit command.")
-                return 0
-            else:
-                logging.info("finishing current synchronization loop. Program will exit once this is complete")
-                stop_flag.value = True
-                return 1
+        try:
+            key_input = input()
+            print(is_sleeping.value)
+            if key_input == "quit":
+                if is_sleeping.value == True:
+                    logging.info("Closing program after quit command.")
+                    return 0
+                else:
+                    logging.info("finishing current synchronization loop. Program will exit once this is complete")
+                    stop_flag.value = True
+                    return 1
+        except Exception as e:
+            pass
 
 def setup_logging(input_log_dir):
     #check if log file location exists - if not, create it
@@ -130,7 +133,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
     else:
         #go over recorded file names and modification dates - md5 all files in source and all files in replica that are not in the list
         #this is to avoid hashing unnecessary files, which can be relavent if we have large files
-        logging.info("Going over previously recordded files...")
+        logging.info("Going over previously recorded files...")
         source_files = glob.glob(source_dir + '/**/*', recursive=True)
         replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
         for file_pair in file_record:
@@ -178,7 +181,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
 
         #Go through all hashes in source
         #For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
-        logging.info("Copying and moving files in replcia to match source...") 
+        logging.info("Copying and moving files in replica to match source...") 
         for source_f in source_meta:
             f_relative_fullname = source_f.fullname.replace(source_dir + os.sep,"")
             replica_f_dir = os.path.join(replica_dir, os.sep.join(f_relative_fullname.split(os.sep)[:-1]))
@@ -213,6 +216,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                     shutil.rmtree(f_name)
 
     logging.info("Sync finished")
+    return file_record
 
 
 def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
@@ -220,12 +224,17 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
     logging.info("to close this program enter the word \"quit\" and then Enter")
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
+    file_record=[]
     while not stop_flag.value:
         start_time = int(time.time())
-        sync_action(source_dir, replica_dir)
+        file_record = sync_action(source_dir, replica_dir, file_record)
 
         if stop_flag.value:
             break
+        
+        print(os.getppid())
+        if os.getppid() == 1:
+            sys.exit(0)
 
         sleep_time = start_time + interval - time.time()
         if sleep_time > 0:
@@ -276,7 +285,7 @@ def main(argv=None):
     try:
         is_sleeping = multiprocessing.Value('b', False)
         stop_flag = multiprocessing.Value('b', False)
-        loop_process = multiprocessing.Process(target=sync_loop,args=(source_dir, replica_dir, interval, stop_flag, is_sleeping, ))
+        loop_process = multiprocessing.Process(target=sync_loop,args=(source_dir, replica_dir, interval, stop_flag, is_sleeping, ), daemon=True)
         loop_process.start()
         if(input_thread(stop_flag, is_sleeping) == 1):
             loop_process.join()
