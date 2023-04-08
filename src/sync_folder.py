@@ -116,7 +116,6 @@ def sync_action(source_dir, replica_dir, file_record=[]):
         #go over recorded file names and modification dates - md5 all files in source and all files in replica that are not in the list
         #this is to avoid hashing unnecessary files, which can be relavent if we have large files
         logging.info("Going over previously recordded files...")
-        logging.debug(source_dir)
         source_files = glob.glob(source_dir + '/**/*', recursive=True)
         replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
         for file_pair in file_record:

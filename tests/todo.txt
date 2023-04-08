@@ -5,27 +5,30 @@ source and replica full and identical ------- V
 extra file in replica ----------------------- V
 extra file in source ------------------------ V
 file name change in source ------------------ V
-file name changed in replica
-file moved in source
-file moved in replica
-deleting last file in subfolder in replica
+file name changed in replica ---------------- V
+file moved in source ------------------------ V
+file moved and changed name in source ------- V
+file moved in replica ----------------------- V
+file moved and name changed in replica ------ V
+deleting last file in subfolder in source --- V
+deleting last file in subfolder in replica -- V
 
-source dir with / in end
-replica dir with / in end
+source dir with / in end -------------------- V
+replica dir with / in end ------------------- V
 
-replica and source identical at start
+zero byte file in source -------------------- V
 
-zero byte file in source
+spaces in file name ------------------------- V
 
-spaces in file name
+quiting mid-copy
+quiting while sleep --- X functionality broken
 
-killing mid-copy
-killing while sleep
+bad time interval input --------------------- V
 
-bad time interval input
+replica folder does not exist -------------- V
+source folder does not exist --------------- V
+log folder does not exist ------------------ V
 
-replica folder does not exist
-source folder does not exist
-log folder does not exist
+log file created successfully -------------- V
 
-log file created successfully
+
