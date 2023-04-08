@@ -27,7 +27,6 @@ def input_thread(stop_flag, is_sleeping):
     while(True):
         try:
             key_input = input()
-            print(is_sleeping.value)
             if key_input == "quit":
                 if is_sleeping.value == True:
                     logging.info("Closing program after quit command.")
@@ -62,18 +61,17 @@ def setup_logging(input_log_dir):
     logging.info("Log file created: " + os.path.join(input_log_dir, time.strftime("%Y%m%d_%H%M%S") + '.log')) 
 
 #make sure source and replica directories exist
-def check_directories(input_source_dir, input_replica_dir):
-    source_dir = None
-    if input_source_dir[-1] == os.sep:
-        source_dir = input_source_dir[:-1]
+def clean_dir_name(input_dir):
+    tmp_dir = None
+    if input_dir[-1] == os.sep:
+        tmp_dir = input_dir[:-1]
     else:
-        source_dir = input_source_dir
+        tmp_dir = input_dir
+    return tmp_dir
 
-    replica_dir = None
-    if input_replica_dir[-1] == os.sep:
-        replica_dir = input_replica_dir[:-1]
-    else:
-        replica_dir = input_replica_dir
+def check_directories(input_source_dir, input_replica_dir):
+    source_dir = clean_dir_name(input_source_dir)
+    replica_dir = clean_dir_name(input_replica_dir)
 
     #check if source directory exists - if not, return error and close program
     if not os.path.isdir(source_dir):
@@ -126,16 +124,31 @@ def md5(filename):
 
 def sync_action(source_dir, replica_dir, file_record=[]):
     logging.info("Starting sync")
+    source_files = glob.glob(source_dir + '/**/*', recursive=True)
+    replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
     #if replica directory is empty - copy everything from source directory over.
     if len(os.listdir(replica_dir)) == 0:
         logging.info("replica directory is empty, copying over entire source directory")
-        shutil.copytree(source_dir, replica_dir, dirs_exist_ok=True)
+        #shutil.copytree(source_dir, replica_dir, dirs_exist_ok=True)
+        for source_f in source_files:
+            if os.path.isdir(source_f):
+                continue
+            f_relative_fullname = source_f.replace(clean_dir_name(source_dir) + os.sep,"")
+            replica_f_dir = os.path.join(replica_dir, os.sep.join(f_relative_fullname.split(os.sep)[:-1]))
+            if not os.path.isdir(replica_f_dir):
+                    os.makedirs(replica_f_dir, exist_ok=True)
+            replica_f_fullname = os.path.join(replica_dir, f_relative_fullname)
+
+            logging.info("Copying file from source to replica: " + f_relative_fullname)
+            shutil.copyfile(source_f, replica_f_fullname)
+            file_record.append((\
+                    FileMeta(fullname=source_f, mod_time=os.path.getmtime(source_f), size=os.path.getsize(source_f), md5="unknown"),\
+                    FileMeta(fullname=replica_f_fullname, mod_time=os.path.getmtime(replica_f_fullname), size=os.path.getsize(replica_f_fullname), md5="unknown")))
+
     else:
         #go over recorded file names and modification dates - md5 all files in source and all files in replica that are not in the list
         #this is to avoid hashing unnecessary files, which can be relavent if we have large files
         logging.info("Going over previously recorded files...")
-        source_files = glob.glob(source_dir + '/**/*', recursive=True)
-        replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
         for file_pair in file_record:
             if file_pair[0].fullname in source_files and \
                     file_pair[0].mod_time == os.path.getmtime(file_pair[0].fullname) and\
@@ -183,7 +196,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
         #For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
         logging.info("Copying and moving files in replica to match source...") 
         for source_f in source_meta:
-            f_relative_fullname = source_f.fullname.replace(source_dir + os.sep,"")
+            f_relative_fullname = source_f.fullname.replace(clean_dir_name(source_dir) + os.sep,"")
             replica_f_dir = os.path.join(replica_dir, os.sep.join(f_relative_fullname.split(os.sep)[:-1]))
             if not os.path.isdir(replica_f_dir):
                     os.makedirs(replica_f_dir, exist_ok=True)
@@ -220,19 +233,22 @@ def sync_action(source_dir, replica_dir, file_record=[]):
 
 
 def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
-    logging.info("Starting synchronization from " + source_dir + " to " + replica_dir + " every " + str(interval))
+    logging.info("Starting synchronization from " + source_dir + " to " + replica_dir + " every " + str(interval) + " seconds")
     logging.info("to close this program enter the word \"quit\" and then Enter")
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
     file_record=[]
     file_record_path = os.path.join(os.path.dirname(__file__),"file_record.txt")
-    if(os.path.exists(file_record_path)):
+    if len(os.listdir(replica_dir)) == 0:
+        if os.path.exists(file_record_path):
+            os.remove(file_record_path)
+    elif(os.path.exists(file_record_path)):
         with open(file_record_path, "r") as fr:
             for line in fr.readlines():
-                if "^^^" not in line:
-                    continue
-                source_f = line.split("^^^")[0]
-                replica_f = line.split("^^^")[1]
+                #if "^^^" not in line:
+                #    continue
+                source_f = line.split("^^^")[0].replace(os.linesep,"")
+                replica_f = line.split("^^^")[1].replace(os.linesep,"")
 
                 s_fullname = source_f.split(";")[0]
                 s_mod_time = source_f.split(";")[1]
@@ -249,19 +265,20 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
                         ))
 
     while not stop_flag.value:
+        if os.getppid() == 1:
+            sys.exit(0)
         start_time = int(time.time())
         file_record = sync_action(source_dir, replica_dir, file_record)
         
-        with open(file_record_path, "a") as fr:
+        with open(file_record_path, "w") as fr:
             for f in file_record:
                 fr.write(f[0].fullname + ";" + str(f[0].mod_time) + ";" + str(f[0].size) + ";" + f[0].md5 +\
                         "^^^" +\
                         f[1].fullname + ";" + str(f[1].mod_time) + ";" + str(f[1].size) + ";" + f[1].md5 +\
-                        "\n")
+                        os.linesep)
 
         if stop_flag.value:
             break
-        
         if os.getppid() == 1:
             sys.exit(0)
 

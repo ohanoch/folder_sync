@@ -8,10 +8,13 @@ import multiprocessing
 
 import sys
 sys.path.append('..')
+import os
 
 from src.sync_folder import *
 
 MAX_LETTERS_IN_FILE = 999
+FILE_RECORD_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)),"src","file_record.txt")
+
 
 #test that md5 algorithm works corretly
 #this uses a file called DO_NOT_CHANGE.txt to do so. If this test fails make sure this file is:
@@ -71,6 +74,7 @@ def test_no_log_directory(tmpdir):
     process.start()
     time.sleep(5)
     process.terminate()
+    os.remove(FILE_RECORD_PATH)
 
     assert len(os.listdir(os.path.join(tmpdir, "ld"))) == 1
 
@@ -105,6 +109,7 @@ def test_log_created(tmpdir):
     process.start()
     time.sleep(1)
     process.terminate()
+    os.remove(FILE_RECORD_PATH)
 
     assert len(os.listdir(os.path.join(tmpdir, "ld"))) == 1
 
@@ -130,6 +135,7 @@ def test_no_replica_directory(tmpdir):
     process.start()
     time.sleep(5)
     process.terminate()
+    os.remove(FILE_RECORD_PATH)
 
     sd_glob = glob.glob(os.path.join(sd.dirname,sd.basename) + '/**/*', recursive=True)
     rd_glob = glob.glob(os.path.join(tmpdir, "rd") + '/**/*', recursive=True)
@@ -656,6 +662,7 @@ def test_replica_empty_spaces_in_names(tmpdir):
     assert md5(sf21) == md5(os.path.join(rd,sd1.basename,sf21.basename))
     assert md5(sf22) == md5(os.path.join(rd,sd1.basename,sf22.basename))
     assert md5(sf3) == md5(os.path.join(rd,sd1.basename,sd2.basename,sf3.basename))
+
 #test source with empty replica. sending directory names that end with "/" file structure:
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
 #rd -> empty
@@ -783,4 +790,78 @@ def test_general_loop(tmpdir):
     assert md5(sf3) == md5(os.path.join(os.path.join(tmpdir, "rd"),sd1.basename,sd2.basename,sf3.basename))
 
     process.terminate()
+    os.remove(FILE_RECORD_PATH)
 
+#test that file_record gets saved properly
+#sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
+#rd -> empty
+def test_file_record(tmpdir):
+    print(tmpdir)
+    sd = tmpdir.mkdir("sd")
+    sf1 = sd.join("sf1.txt")
+    sf1.write(''.join(random.choice(string.ascii_letters) for i in range(random.randint(1,MAX_LETTERS_IN_FILE))))
+    sd1 = sd.mkdir("sd1")
+    sf21 = sd1.join("sf21.txt")
+    sf21.write(''.join(random.choice(string.ascii_letters) for i in range(random.randint(1,MAX_LETTERS_IN_FILE))))
+    sf22 = sd1.join("sf22.txt")
+    sf22.write(''.join(random.choice(string.ascii_letters) for i in range(random.randint(1,MAX_LETTERS_IN_FILE))))
+    sd2 = sd1.mkdir("sd2")
+    sf3 = sd2.join("sf3.txt")
+    sf3.write(''.join(random.choice(string.ascii_letters) for i in range(random.randint(1,MAX_LETTERS_IN_FILE))))
+    rd = tmpdir.mkdir("rd")
+    ld = tmpdir.mkdir("ld")
+
+    process = multiprocessing.Process(target=main,args=(["-s", os.path.join(tmpdir, "sd"), "-r", os.path.join(tmpdir, "rd"), "-l", os.path.join(tmpdir, "ld"), "-i", "5s"],))
+    process.start()
+    time.sleep(2)
+    process.terminate()
+
+    print(FILE_RECORD_PATH)
+    with open(FILE_RECORD_PATH, "r") as fr:
+        fr.seek(0)
+        all_lines = []
+        for line in fr.readlines():
+            all_lines.append(line.replace(os.linesep, ""))
+
+        line1 = os.path.join(sf1.dirname, sf1.basename) + ";" + \
+                str(os.path.getmtime(sf1)) + ";" +\
+                str(os.path.getsize(sf1)) + ";" + \
+                "unknown" + "^^^" +\
+                os.path.join(tmpdir, "rd", sf1.basename) + ";" + \
+                str(os.path.getmtime(os.path.join(tmpdir, "rd", sf1.basename))) + ";" +\
+                str(os.path.getsize(os.path.join(tmpdir, "rd", sf1.basename))) + ";" + \
+                "unknown"
+        assert line1 in all_lines
+
+        line2 = os.path.join(sf21.dirname, sf21.basename) + ";" + \
+                str(os.path.getmtime(sf21)) + ";" +\
+                str(os.path.getsize(sf21)) + ";" + \
+                "unknown" + "^^^" +\
+                os.path.join(tmpdir, "rd", "sd1",sf21.basename) + ";" + \
+                str(os.path.getmtime(os.path.join(tmpdir, "rd", "sd1",sf21.basename))) + ";" +\
+                str(os.path.getsize(os.path.join(tmpdir, "rd", "sd1", sf21.basename))) + ";" + \
+                "unknown"
+        assert line2 in all_lines
+
+        line3 = os.path.join(sf22.dirname, sf22.basename) + ";" + \
+                str(os.path.getmtime(sf22)) + ";" +\
+                str(os.path.getsize(sf22)) + ";" + \
+                "unknown" + "^^^" +\
+                os.path.join(tmpdir, "rd", "sd1",sf22.basename) + ";" + \
+                str(os.path.getmtime(os.path.join(tmpdir, "rd", "sd1",sf22.basename))) + ";" +\
+                str(os.path.getsize(os.path.join(tmpdir, "rd", "sd1", sf22.basename))) + ";" + \
+                "unknown"
+        assert line3 in all_lines
+
+        line4 = os.path.join(sf3.dirname, sf3.basename) + ";" + \
+                str(os.path.getmtime(sf3)) + ";" +\
+                str(os.path.getsize(sf3)) + ";" + \
+                "unknown" + "^^^" +\
+                os.path.join(tmpdir, "rd", "sd1", "sd2",sf3.basename) + ";" + \
+                str(os.path.getmtime(os.path.join(tmpdir, "rd", "sd1", "sd2",sf3.basename))) + ";" +\
+                str(os.path.getsize(os.path.join(tmpdir, "rd", "sd1", "sd2", sf3.basename))) + ";" + \
+                "unknown"
+        assert line4 in all_lines
+
+
+    os.remove(FILE_RECORD_PATH)

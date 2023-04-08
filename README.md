@@ -4,6 +4,9 @@ This will be done periodically.
 A log file is saved and documents what is happening.
 A file named file_record.txt will be created keeping track of the files that were already synched in the past.
 
+Note:
+Do not use files with ";" or "^^^" in their names - this will conflict with the format used in file_record.txt
+
 ##Usage
 python3 src/sync_folder.py -s SOURCE_DIR -r REPLICA_DIR -i INTERVAL -l LOG_DIR
 
