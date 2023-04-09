@@ -7,3 +7,4 @@ venv
 __pycache__/*
 file_record.txt
 .coverage
+.coverage.*
