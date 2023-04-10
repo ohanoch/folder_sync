@@ -33,6 +33,8 @@ before_script:
 test:
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   script:
+    - who
+    - ls /tmp/.X11-unix
     - DISPLAY=:1 pytest --cov=.
     - curl -Os https://uploader.codecov.io/latest/linux/codecov
     - chmod +x codecov
