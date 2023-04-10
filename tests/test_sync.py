@@ -5,12 +5,14 @@ import random
 import string
 import time
 import multiprocessing
+import pyautogui
 
-import sys
-sys.path.append('..')
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname((__file__))),"src"))
 
-from src.sync_folder import *
+from sync_folder import *
+from helper import *
 
 MAX_LETTERS_IN_FILE = 999
 FILE_RECORD_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)),"src","file_record.txt")
@@ -38,6 +40,34 @@ def test_intervals():
     assert interval_to_seconds("04h") == 14400
     assert interval_to_seconds("03m") == 180
     assert interval_to_seconds("2s") == 2
+
+def keyboard_input(s):
+    print("Automating keyboard input - please do not press anything")
+    time.sleep(2)
+    pyautogui.write("quit")
+    pyautogui.press("enter")
+
+    time.sleep(2)
+    pyautogui.write("quit")
+    pyautogui.press("enter")
+    print("Automating keyboard input done.")
+
+def test_quit():
+    is_sleeping = multiprocessing.Value('b', False)
+    stop_flag = multiprocessing.Value('b', False)
+    
+    process = multiprocessing.Process(target=keyboard_input, args=("quit", ), daemon=True)
+    process.start()
+    assert input_thread(stop_flag, is_sleeping,) == 1
+    is_sleeping.acquire()
+    is_sleeping.value = True
+    is_sleeping.release()
+    stop_flag.acquire()
+    stop_flag.value = False
+    stop_flag.release()
+    assert input_thread(stop_flag, is_sleeping,) == 0
+
+    process.terminate()
 
 def get_glob_count(sd, rd):
     sd_glob = glob.glob(os.path.join(sd.dirname,sd.basename) + '/**/*', recursive=True)
