@@ -5,11 +5,12 @@ import random
 import string
 import time
 import multiprocessing
-import pyautogui
 
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname((__file__))),"src"))
+os.environ['DISPLAY'] = ':0'
+import pyautogui
 
 from sync_folder import *
 from helper import *
