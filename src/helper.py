@@ -1,7 +1,9 @@
 import os
 import hashlib
 
-#make sure source and replica directories exist
+"""
+Fix directory names to not end with slashes.
+"""
 def clean_dir_name(input_dir):
     tmp_dir = None
     if input_dir[-1] == os.sep:
@@ -10,6 +12,9 @@ def clean_dir_name(input_dir):
         tmp_dir = input_dir
     return tmp_dir
 
+"""
+Check if source and repplica directories exist - if not, create them
+"""
 def check_directories(input_source_dir, input_replica_dir):
     source_dir = clean_dir_name(input_source_dir)
     replica_dir = clean_dir_name(input_replica_dir)
@@ -23,6 +28,11 @@ def check_directories(input_source_dir, input_replica_dir):
 
     return source_dir, replica_dir
 
+"""
+Accept interval in shapre ##d##h##m##s
+calculate and return the time in seconds
+Raise an eception if the shape is wrong
+"""
 def interval_to_seconds(input_interval):
     try:
         if not "d" in input_interval and\
@@ -54,6 +64,9 @@ def interval_to_seconds(input_interval):
         raise Exception("Bad interval entered. Interval should be of shape ##d##h##m##s - got: " + input_interval)
     return days*24*60*60  + hours*60*60 + minutes*60 + seconds
 
+"""
+Perform md5 on file in chunks. This helps with lare files
+"""
 #https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
 def md5(filename):
     hash_md5 = hashlib.md5()
