@@ -75,7 +75,7 @@ def check_directories(input_source_dir, input_replica_dir):
 
     #check if source directory exists - if not, return error and close program
     if not os.path.isdir(source_dir):
-        raise Exception("Source directory not found.")
+        os.makedirs(source_dir, exist_ok = True)
     #check if replica directory exists - if not, create it
     if not os.path.isdir(replica_dir):
         os.makedirs(replica_dir, exist_ok = True)
@@ -124,12 +124,12 @@ def md5(filename):
 
 def sync_action(source_dir, replica_dir, file_record=[]):
     logging.info("Starting sync")
+    # collect lists of all files and directories in source and replica directories. These will be used as the files that need to be copied over from source, or deleted from replcia.
     source_files = glob.glob(source_dir + '/**/*', recursive=True)
     replica_files = glob.glob(replica_dir + '/**/*', recursive=True)
-    #if replica directory is empty - copy everything from source directory over.
+    # Check if the replica directory is empty. If so, copy over all the files from the source one by one, while recording the name, size and modification time in the file record variable.
     if len(os.listdir(replica_dir)) == 0:
         logging.info("replica directory is empty, copying over entire source directory")
-        #shutil.copytree(source_dir, replica_dir, dirs_exist_ok=True)
         for source_f in source_files:
             if os.path.isdir(source_f):
                 continue
@@ -146,8 +146,8 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                     FileMeta(fullname=replica_f_fullname, mod_time=os.path.getmtime(replica_f_fullname), size=os.path.getsize(replica_f_fullname), md5="unknown")))
 
     else:
-        #go over recorded file names and modification dates - md5 all files in source and all files in replica that are not in the list
-        #this is to avoid hashing unnecessary files, which can be relavent if we have large files
+        # Go over the file record and check if the pair of files still exists, including size and modification time, in the source and replica directories respectively. If so - we can conclude that these are the same files have already been copied through and left unchanged, and we can remove the from the file lists to be copied. These will save us time doing md5 on these files (which is especially relavent if they are big).
+        # *Note - technically if someone switches a file with a different file and manipulates the metadate to match this can be a problem. If security needs to be taken into account to this degree this needs to be removed.
         logging.info("Going over previously recorded files...")
         for file_pair in file_record:
             if file_pair[0].fullname in source_files and \
@@ -165,6 +165,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
         logging.debug("Unmatched source files: " + str(source_files))
         logging.debug("Unmatched replica files: " + str(replica_files))
 
+        # md5 all the files that still exist in the source and replica directory lists
         logging.info("Hashing source files with md5...") 
         source_meta = []
         source_md5 = []
@@ -184,6 +185,7 @@ def sync_action(source_dir, replica_dir, file_record=[]):
             if os.path.isdir(f_name):
                 continue
             f_md5 = md5(f_name)
+            #Delete files that don't exist in source
             if f_md5 not in source_md5:
                 logging.info("Deleting file from replica directory: " + f_name)
                 os.remove(f_name)
@@ -192,8 +194,10 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                 replica_meta.append(FileMeta(fullname=f_name, mod_time=os.path.getmtime(f_name), size=os.path.getsize(f_name), md5=f_md5))
                 replica_md5.append(f_md5)
 
-        #Go through all hashes in source
-        #For items in source that are not in replica - copy them over. Record the file name and modification date of file in source and in replica
+        # Go through all hashes in source
+        # Go over all files in source and search for equivalent md5 hashes files in the replica.
+        # 1. If they are not found - copy them over and document them in file record.
+        # 2. If the md5 hash from source is found in replica it means the file name was changed (as we know the contents are the same and otherwise it would have been removed from the list earlier). In this case we move the file to the correct place and name, creating any subdirectories needed in the replica.
         logging.info("Copying and moving files in replica to match source...") 
         for source_f in source_meta:
             f_relative_fullname = source_f.fullname.replace(clean_dir_name(source_dir) + os.sep,"")
@@ -220,8 +224,8 @@ def sync_action(source_dir, replica_dir, file_record=[]):
                                 replica_f))
                         break
 
-        #Search for folders that are not in source and delete them from replica
-        #This is being done at the end so that we avoid deleting files that have changed names before we had a chance to move them
+        # Delete all unecessary old directories from replica - these directories would be empty directories that had files in them but they were moved/deleted in this sync action - leaving them empty. If the directories don't exist in the source now then they are deleted from replica.
+        # This is being done at the end so that we avoid deleting files that have changed names before we had a chance to move them
         for f_name in replica_files:
             if os.path.isdir(f_name):
                 if not os.path.isdir(os.path.join(source_dir, f_name.replace(replica_dir + os.sep, ""))):
@@ -237,6 +241,7 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
     logging.info("to close this program enter the word \"quit\" and then Enter")
     #https://stackoverflow.com/questions/13180941/how-to-kill-a-while-loop-with-a-keystroke
 
+    # File record is loaded from a file - this file contains pairs of files, 1 from source and 1 from replica, where the source file was already copied into the replica file in the past, their size and modification time. This will save us from running md5 on unecesary files later on.
     file_record=[]
     file_record_path = os.path.join(os.path.dirname(__file__),"file_record.txt")
     if len(os.listdir(replica_dir)) == 0:
@@ -264,6 +269,8 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
                         FileMeta(r_fullname, r_mod_time, r_size, r_md5)\
                         ))
 
+    # An infinit loop is started that sleeps every "interval" amount of time. The sleeping takes into account the time it took for the sync process, i.e. if the sync took 2 seconds and the interval was 5 secounds it will only sleep for 3 seconds.
+    #The loop will stop when a variable is changed on the main thread. This happens once the word "quit" is entered.
     while not stop_flag.value:
         if os.getppid() == 1:
             sys.exit(0)
@@ -294,6 +301,7 @@ def sync_loop(source_dir, replica_dir, interval, stop_flag, is_sleeping):
 ##########################################
 
 def main(argv=None):
+    #argparse will parse the arguments.
     parser = argparse.ArgumentParser("This program will synchronize files between 2 directories periodically.")
 
     parser.add_argument("-s", "--source-dir", help = "Source directory to be synced.", required=True)
@@ -302,6 +310,7 @@ def main(argv=None):
     parser.add_argument("-l", "--log-dir", help = "Location of log file to be saved.", required=True)
     args = parser.parse_args(argv)
     
+    #Set up the logging - creating the log directory provided if it does not exist yet and naming the log file using the date and time.
     try:
         setup_logging(args.log_dir)
     except Exception as e:
@@ -310,16 +319,15 @@ def main(argv=None):
         traceback.print_exc()
         raise Exception(e)
 
-    #Check if source and replica directories are valid
+    # Confirm that the source and replica directory exist. If a directory  does not exist - it will create it.
     try:
-
         source_dir, replica_dir = check_directories(args.source_dir, args.replica_dir)
     except Exception as e:
         logging.error("Directory path validation crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
         raise Exception(e)
     
-    #translate interval into seconds
+    # Convert interval from ##d##h##m##s into seconds.
     try:
         interval = interval_to_seconds(args.interval)
         logging.info("Interval " + args.interval + " in seconds = " + str(interval))
@@ -327,12 +335,14 @@ def main(argv=None):
         logging.error("Interval calculation crashed with error: " + str(e))
         logging.error("Traceback: ", exc_info=True)
         raise Exception(e)
-
+    
+    # Start a new thread that will run the infinit loop. This thread is defined a daemon so that is closes when the main program is closed.
     try:
         is_sleeping = multiprocessing.Value('b', False)
         stop_flag = multiprocessing.Value('b', False)
         loop_process = multiprocessing.Process(target=sync_loop,args=(source_dir, replica_dir, interval, stop_flag, is_sleeping, ), daemon=True)
         loop_process.start()
+        # input thread is an infnit loop waiting for the user to enter the word "quit" - this will allow for safe exiting of the program by waiting for the sync loop to finish before exiting, so that copying processes dont get inturupted in the middle.
         if(input_thread(stop_flag, is_sleeping) == 1):
             loop_process.join()
         loop_process.terminate()

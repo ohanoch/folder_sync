@@ -113,6 +113,28 @@ def test_log_created(tmpdir):
 
     assert len(os.listdir(os.path.join(tmpdir, "ld"))) == 1
 
+
+#source folder does not exist
+#sd -> doesnt exist
+#rd -> exists
+def test_no_source_directory(tmpdir):
+    print(tmpdir)
+    rd = tmpdir.mkdir("rd")
+    ld = tmpdir.mkdir("ld")
+
+    process = multiprocessing.Process(target=main,args=(["-s", os.path.join(tmpdir, "sd"), "-r", os.path.join(tmpdir, "rd"), "-l", os.path.join(tmpdir, "ld"), "-i", "1s"],))
+    process.start()
+    time.sleep(5)
+    process.terminate()
+    os.remove(FILE_RECORD_PATH)
+
+    sd_glob = glob.glob(os.path.join(tmpdir, "sd") + '/**/*', recursive=True)
+    rd_glob = glob.glob(os.path.join(tmpdir, "rd") + '/**/*', recursive=True)
+    sd_count = sum([len(files) for r, d, files in os.walk(os.path.join(tmpdir, "sd"))])
+    rd_count = sum([len(files) for r, d, files in os.walk(os.path.join(tmpdir, "rd"))])
+    assert sd_count == rd_count
+    assert len(sd_glob) == len(rd_glob)
+
 #replica folder does not exist
 #sd -> (sf1, sd1 -> (sf20, sf21, sd2->(sf3)))
 #rd -> doesnt exist
