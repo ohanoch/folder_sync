@@ -25,6 +25,7 @@ cache:
 
 before_script:
   - python --version  # For debugging
+  - apt-get install xorg
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
