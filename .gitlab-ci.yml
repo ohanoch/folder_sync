@@ -25,7 +25,7 @@ cache:
 
 before_script:
   - python --version  # For debugging
-  - apt-get install xorg
+  - apt install xserver-xorg-core
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
@@ -34,9 +34,9 @@ before_script:
 test:
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   script:
-    - who
+    - whoami
     - ls /tmp/.X11-unix
-    - DISPLAY=:1 pytest --cov=.
+    - DISPLAY=:0 pytest --cov=.
     - curl -Os https://uploader.codecov.io/latest/linux/codecov
     - chmod +x codecov
     - ./codecov -t 3c226aa0-1269-4a58-a7b4-5ee932da6553
