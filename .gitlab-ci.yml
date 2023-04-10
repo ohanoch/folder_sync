@@ -27,7 +27,7 @@ before_script:
   - python --version  # For debugging
   - whoami
   - apt-get update
-  - apt install -y xorg-dev libglu1-mesa libgl1-mesa-dev xvfb libxinerama1 libxcursor1
+  - sudo apt install -y xserver-xorg-core
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
