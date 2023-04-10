@@ -27,7 +27,7 @@ before_script:
   - python --version  # For debugging
   - whoami
   - apt-get update
-  - sudo apt install -y xserver-xorg-core
+  - apt install -y xserver-xorg-core
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
